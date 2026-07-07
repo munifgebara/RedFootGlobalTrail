@@ -1,0 +1,22 @@
+{
+  "name": "rally-maringa",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Simulador de rally 3D nos arredores de Maringá-PR — Vite + TypeScript + three (WebGPU/TSL) + cannon-es",
+  "scripts": {
+    "dev": "vite --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --port 4300",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "cannon-es": "0.20.0",
+    "three": "0.171.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.171.0",
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
+  }
+}
