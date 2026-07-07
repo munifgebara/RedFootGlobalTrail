@@ -1,9 +1,10 @@
-# 🏁 Rally de Maringá — RedFoot Global Trail
+# 👣 Red Foot Global Trail
 
-POC de simulador de rally 3D 100% no navegador, ambientado na zona rural de
-Maringá-PR: terra roxa, cafezais, ipês rosa e amarelos, sedes de fazenda e a
-Catedral no horizonte. Uma especial de ~6 km ("SS1 — Estrada do Café") com
-copiloto falando pacenotes em português.
+Etapa 1: **Rally de Maringá** — simulador de rally 3D 100% no navegador,
+ambientado na zona rural de Maringá-PR: terra roxa, cafezais, ipês rosa e
+amarelos, sedes de fazenda e a Catedral no horizonte. Uma especial de ~6 km
+("SS1 — Estrada do Café") com copiloto falando pacenotes em português, e o
+monumento 3D da logo Red Foot girando na largada.
 
 **Jogue agora:** abra o GitHub Pages do repositório (ou rode localmente, abaixo).
 
@@ -19,7 +20,20 @@ copiloto falando pacenotes em português.
 
 Tudo gerado proceduralmente em tempo de carga: pista (Catmull-Rom), relevo,
 talhões de cultura, ~560 árvores, ~1600 pés de café, capim com vento, nuvens
-animadas, pacenotes extraídos da curvatura do traçado.
+animadas, pacenotes extraídos da curvatura do traçado — e a identidade
+**Red Foot** (pegada vermelha) desenhada em canvas e extrudada em 3D.
+
+### LOD multi-qualidade (curta / média / longa distância)
+
+| Distância | Árvores | Cafezal | Capim |
+|---|---|---|---|
+| ≤ 130 m | tronco com galhos + copa multi-lobos | modelo cheio | denso (≤ 175 m) |
+| ≤ 460 m | copa única facetada | modelo cheio | — |
+| ≤ 1500 m | billboard tintado por instância | some (> 650 m) | — |
+
+O re-bucketing roda a cada ~0,3 s e cada nível é fatiado em sub-meshes de
+1000 instâncias (limite de 64 KB de uniform buffer do WebGPU). Sombras de
+nuvens varrem terreno e estrada em sincronia com o céu (ruído TSL).
 
 ## Controles
 

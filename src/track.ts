@@ -3,6 +3,7 @@ import {
   uv, positionWorld, mx_noise_float, color, float, vec3, smoothstep, mix, attribute,
 } from 'three/tsl';
 import { terrainH } from './terrain';
+import { cloudShadowNode } from './sky';
 
 export const ROAD_HALF = 4.3;
 export const DS = 2.5;
@@ -168,7 +169,10 @@ export function buildRoad(t: Track): THREE.Group {
   const base = mix(color(0x7a4a33), color(0x54301f), ruts.mul(0.55));
   mat.colorNode = base
     .mul(float(0.9).add(nAlong.mul(0.10)).add(nFine.mul(0.08)))
-    .mul(float(0.78).add(edge.mul(0.22)));
+    .mul(float(0.78).add(edge.mul(0.22)))
+    .mul(float(1.0).sub(cloudShadowNode().mul(0.18)));
+  // trilhos de pneu levemente mais "polidos" (brilho de terra compactada)
+  mat.roughnessNode = float(1.0).sub(ruts.mul(0.25));
 
   const road = new THREE.Mesh(ribbonGeometry(t, -ROAD_HALF, ROAD_HALF), mat);
   road.receiveShadow = true;
@@ -178,7 +182,9 @@ export function buildRoad(t: Track): THREE.Group {
   const cDirt = new THREE.Color(0x6e4530), cGrass = new THREE.Color(0x86ad52);
   const shoulderMat = new THREE.MeshStandardNodeMaterial({ roughness: 1 });
   const nSh = mx_noise_float(positionWorld.mul(0.9));
-  shoulderMat.colorNode = attribute('color', 'vec3').mul(float(0.95).add(nSh.mul(0.1)));
+  shoulderMat.colorNode = attribute('color', 'vec3')
+    .mul(float(0.95).add(nSh.mul(0.1)))
+    .mul(float(1.0).sub(cloudShadowNode().mul(0.20)));
   for (const [a, b] of [[ROAD_HALF - 0.1, ROAD_HALF + 3.4], [-(ROAD_HALF - 0.1), -(ROAD_HALF + 3.4)]]) {
     const m = new THREE.Mesh(ribbonGeometry(t, a, b, cDirt, cGrass), shoulderMat);
     m.receiveShadow = true;

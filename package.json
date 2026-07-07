@@ -1,6 +1,6 @@
 {
-  "name": "rally-maringa",
-  "version": "2.0.0",
+  "name": "red-foot-global-trail",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "description": "Simulador de rally 3D nos arredores de Maringá-PR — Vite + TypeScript + three (WebGPU/TSL) + cannon-es",

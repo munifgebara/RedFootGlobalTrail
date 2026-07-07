@@ -1,6 +1,6 @@
 import * as THREE from 'three/webgpu';
 import {
-  positionLocal, color, float, vec3, mix, smoothstep, uniform, time, mx_noise_float,
+  positionLocal, positionWorld, color, float, vec2, vec3, mix, smoothstep, uniform, time, mx_noise_float,
 } from 'three/tsl';
 
 export const SUN_DIR = new THREE.Vector3(0.55, 0.62, 0.42).normalize();
@@ -43,6 +43,17 @@ export function buildSky(): THREE.Mesh {
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(3800, 32, 16), mat);
   mesh.frustumCulled = false;
   return mesh;
+}
+
+/**
+ * Sombra de nuvens varrendo o chão (0 = céu limpo, 1 = sombra cheia).
+ * Mesma família de ruído das nuvens do céu, derivando com o tempo.
+ */
+export function cloudShadowNode() {
+  const p = positionWorld.xz.mul(0.0045).add(vec2(time.mul(-0.010), time.mul(-0.004)));
+  const n = mx_noise_float(vec3(p, 7.3))
+    .add(mx_noise_float(vec3(p.mul(2.4).add(37.0), 3.1)).mul(0.5));
+  return smoothstep(0.30, 0.95, n);
 }
 
 /** Luzes da cena: sol direcional com sombras + hemisférica. */

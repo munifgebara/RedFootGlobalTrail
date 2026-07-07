@@ -25,6 +25,15 @@ async function main(): Promise<void> {
   const forceWebGL = new URLSearchParams(location.search).has('webgl');
   const renderer = new THREE.WebGPURenderer({ antialias: true, forceWebGL });
   await renderer.init();
+  // captura erros de validação do WebGPU (não aparecem como exceção JS)
+  const gpuErrs: string[] = [];
+  (window as any).__gpuErrs = gpuErrs;
+  const device = (renderer.backend as any).device as GPUDevice | undefined;
+  if (device) {
+    device.onuncapturederror = (e: any) => {
+      if (gpuErrs.length < 20) gpuErrs.push(String(e.error?.message ?? e));
+    };
+  }
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
   renderer.setSize(innerWidth, innerHeight);
   renderer.shadowMap.enabled = true;
@@ -45,7 +54,7 @@ async function main(): Promise<void> {
   const sun = buildLights(scene);
   scene.add(buildTerrain(track.roadDist));
   scene.add(buildRoad(track));
-  buildScenery(scene, track);
+  const scenery = buildScenery(scene, track);
 
   const carVis = buildCarVisual();
   scene.add(carVis.group);
@@ -252,6 +261,7 @@ async function main(): Promise<void> {
       input.throttle, vehicle.slip, vehicle.offroad, spd);
 
     updateCamera(dt);
+    scenery.update(camera.position, dt);
     if (G.state !== 'MENU') {
       hud.update(dt, {
         kmh: spd * 3.6,
@@ -263,12 +273,15 @@ async function main(): Promise<void> {
         racing: driving,
       });
     }
-    postProcessing.render();
+    if ((window as any).__raw) renderer.render(scene, camera);
+    else postProcessing.render();
+    (dbg as any).draws = renderer.info.render.drawCalls;
     dbg.frames++;
   }
 
   function loop(): void {
     requestAnimationFrame(loop);
+    if ((window as any).__pause) { clock.getDelta(); return; }
     try { tick(Math.min(clock.getDelta(), 0.05)); }
     catch (e: any) { dbg.err = String(e?.stack ?? e); }
   }

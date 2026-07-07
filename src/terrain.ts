@@ -3,6 +3,7 @@ import {
   attribute, positionWorld, positionView, mx_noise_float,
   float, sin, smoothstep, vec3,
 } from 'three/tsl';
+import { cloudShadowNode } from './sky';
 
 /** Relevo analítico — colinas suaves do norte do Paraná. */
 export function terrainH(x: number, z: number): number {
@@ -69,7 +70,8 @@ export function buildTerrain(roadDist: (x: number, z: number) => number): THREE.
   const rowFade = smoothstep(float(520), float(60), viewDist);
   const rows = sin(positionWorld.x.mul(1.15)).mul(fField).mul(rowFade).mul(0.09);
   const detail = float(1.0).add(nBig.mul(0.11)).add(nSmall.mul(0.07)).add(rows);
-  mat.colorNode = vcol.mul(detail).max(0.0);
+  const cloud = float(1.0).sub(cloudShadowNode().mul(0.22));
+  mat.colorNode = vcol.mul(detail).mul(cloud).max(0.0);
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;

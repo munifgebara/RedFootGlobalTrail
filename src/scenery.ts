@@ -5,7 +5,9 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { terrainH, fieldNoise } from './terrain';
 import type { Track } from './track';
-import { ROAD_HALF, DS } from './track';
+import { ROAD_HALF } from './track';
+import { DistanceLod } from './lod';
+import { buildLogoMonument, drawFoot } from './logo';
 
 // gerador determinístico
 let seed = 20260707;
@@ -28,13 +30,17 @@ function canvasTex(w: number, h: number, draw: (g: CanvasRenderingContext2D, w: 
   return t;
 }
 
-function bannerTex(text: string, bg: string, fg: string): THREE.CanvasTexture {
+function bannerTex(text: string, bg: string, fg: string, feet = false): THREE.CanvasTexture {
   return canvasTex(1024, 128, (g, w, h) => {
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 6; g.strokeRect(6, 6, w - 12, h - 12);
-    g.fillStyle = fg; g.font = '900 76px "Segoe UI", sans-serif';
+    g.fillStyle = fg; g.font = `900 ${feet ? 64 : 76}px "Segoe UI", sans-serif`;
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillText(text, w / 2, h / 2 + 4);
+    if (feet) {
+      drawFoot(g, 72, h / 2 + 10, 24, '#ffffff');
+      drawFoot(g, w - 72, h / 2 + 10, 24, '#ffffff');
+    }
   });
 }
 
@@ -45,9 +51,9 @@ const mats = {
   grey: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.9 }),
 };
 
-/** Copa "amassada" (icosaedro com vértices deslocados) p/ árvores low-poly vivas. */
-function lumpyCanopy(radius: number): THREE.BufferGeometry {
-  const g = new THREE.IcosahedronGeometry(radius, 1);
+/** Copa "amassada" (icosaedro com vértices deslocados). */
+function lumpyCanopy(radius: number, detail = 1): THREE.BufferGeometry {
+  const g = new THREE.IcosahedronGeometry(radius, detail);
   const pos = g.attributes.position as THREE.BufferAttribute;
   const v = new THREE.Vector3();
   for (let i = 0; i < pos.count; i++) {
@@ -61,41 +67,111 @@ function lumpyCanopy(radius: number): THREE.BufferGeometry {
   return g;
 }
 
-export function buildScenery(scene: THREE.Scene, t: Track): void {
-  trees(scene, t);
-  coffee(scene, t);
-  grassTufts(scene, t);
+export interface SceneryController {
+  update(camPos: THREE.Vector3, dt: number): void;
+}
+
+export function buildScenery(scene: THREE.Scene, t: Track): SceneryController {
+  const lods: DistanceLod[] = [];
+  const DEBUG_DISABLE = new URLSearchParams(location.search).get('off') ?? '';
+  if (!DEBUG_DISABLE.includes('trees')) lods.push(trees(scene, t));
+  if (!DEBUG_DISABLE.includes('coffee')) lods.push(coffee(scene, t));
+  if (!DEBUG_DISABLE.includes('grass')) lods.push(grassTufts(scene, t));
+  if (!DEBUG_DISABLE.includes('rocks')) rocks(scene, t);
   fences(scene, t);
   poles(scene, t);
   chevrons(scene, t);
-  gantry(scene, t, t.START_I, 'RALLY DE MARINGÁ', '#c81e14');
+  gantry(scene, t, t.START_I, 'RED FOOT GLOBAL TRAIL', '#c81e14', true);
   gantry(scene, t, t.FINISH_I, 'CHEGADA', '#111418');
   sponsors(scene, t);
   cathedralAndCity(scene);
   farms(scene, t);
+
+  // monumento da logo girando ao lado da largada
+  const monument = buildLogoMonument(3);
+  if (!DEBUG_DISABLE.includes('logo')) {
+    // longe o bastante para a câmera orbital do menu não atravessá-lo
+    const i = t.START_I - 16, side = 1;
+    const x = t.pts[i].x + t.norm[i].x * (ROAD_HALF + 14) * side;
+    const z = t.pts[i].z + t.norm[i].z * (ROAD_HALF + 14) * side;
+    monument.position.set(x, terrainH(x, z), z);
+    scene.add(monument);
+  }
+
+  return {
+    update(camPos: THREE.Vector3, dt: number): void {
+      for (const l of lods) l.update(camPos, dt);
+      (monument.userData.foot as THREE.Object3D).rotation.y += dt * 0.5;
+    },
+  };
 }
 
-/* ---------- árvores (ipês) com vento nas copas ---------- */
-function trees(scene: THREE.Scene, t: Track): void {
+/* ================= árvores com 3 níveis de detalhe ================= */
+function trees(scene: THREE.Scene, t: Track): DistanceLod {
   const N = 560;
-  const trunkG = new THREE.CylinderGeometry(0.32, 0.5, 4.6, 6);
-  const canG = lumpyCanopy(3.1);
-  const trunks = new THREE.InstancedMesh(trunkG, mats.trunk, N);
+  const lod = new DistanceLod();
 
+  // --- geometrias: tronco (base em y=0) ---
+  const trunkMedG = new THREE.CylinderGeometry(0.32, 0.5, 4.6, 6);
+  trunkMedG.translate(0, 2.3, 0);
+  const branch1 = new THREE.CylinderGeometry(0.09, 0.16, 2.2, 6);
+  branch1.translate(0, 1.1, 0); branch1.rotateZ(0.62); branch1.translate(0.22, 2.6, 0);
+  const branch2 = new THREE.CylinderGeometry(0.07, 0.13, 1.8, 6);
+  branch2.translate(0, 0.9, 0); branch2.rotateZ(-0.55); branch2.rotateY(2.1); branch2.translate(-0.15, 3.1, 0.1);
+  const trunkHiCore = new THREE.CylinderGeometry(0.26, 0.52, 5.0, 9);
+  trunkHiCore.translate(0, 2.5, 0);
+  const trunkHiG = mergeGeometries([trunkHiCore, branch1, branch2])!;
+
+  // --- copas (centradas na origem local) ---
+  const canMedG = lumpyCanopy(3.1, 1);
+  const lobes: THREE.BufferGeometry[] = [lumpyCanopy(2.5, 1)];
+  const lobeOffsets: [number, number, number, number][] = [
+    [1.55, 0.55, 0.35, 0.72], [-1.35, 0.25, -0.85, 0.66], [0.25, 1.55, 0.85, 0.6], [-0.45, -0.4, 1.35, 0.5],
+  ];
+  for (const [x, y, z, s] of lobeOffsets) {
+    const l = lumpyCanopy(2.5, 1);
+    l.scale(s, s, s);
+    l.translate(x, y, z);
+    lobes.push(l);
+  }
+  const canHiG = mergeGeometries(lobes)!;
+
+  // material da copa com vento (compartilhado pelos níveis hi e médio)
   const canMat = new THREE.MeshStandardNodeMaterial({ roughness: 1, flatShading: true });
-  // balanço sutil de vento por instância
   const phase = hash(instanceIndex).mul(6.283);
-  const sway = vec3(
-    sin(time.mul(0.9).add(phase)),
-    float(0),
-    cos(time.mul(1.1).add(phase)),
-  ).mul(positionLocal.y.max(0).mul(0.035));
+  const sway = vec3(sin(time.mul(0.9).add(phase)), float(0), cos(time.mul(1.1).add(phase)))
+    .mul(positionLocal.y.max(0).mul(0.035));
   canMat.positionNode = positionLocal.add(sway);
-  const cans = new THREE.InstancedMesh(canG, canMat, N);
 
-  trunks.castShadow = cans.castShadow = true;
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(),
-        S = new THREE.Vector3(), P = new THREE.Vector3();
+  // --- billboard (textura em tons de cinza, tintada por instância) ---
+  const billTex = canvasTex(128, 128, (g) => {
+    g.clearRect(0, 0, 128, 128);
+    g.fillStyle = '#7d6250';
+    g.fillRect(58, 68, 12, 60);
+    g.fillStyle = '#c9c9c9';
+    for (const [x, y, r] of [[64, 44, 34], [40, 56, 22], [90, 58, 22], [64, 66, 26]] as const) {
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+    }
+  });
+  const billG = new THREE.PlaneGeometry(7, 8.4);
+  billG.translate(0, 4.2, 0);
+  const billMat = new THREE.MeshStandardMaterial({
+    map: billTex, alphaTest: 0.5, roughness: 1, side: THREE.DoubleSide,
+  });
+
+  lod.addLevel(130, [
+    { geometry: trunkHiG, material: mats.trunk, matrixIndex: 0, useColor: false, castShadow: true },
+    { geometry: canHiG, material: canMat, matrixIndex: 1, useColor: true, castShadow: true },
+  ]);
+  lod.addLevel(460, [
+    { geometry: trunkMedG, material: mats.trunk, matrixIndex: 0, useColor: false, castShadow: true },
+    { geometry: canMedG, material: canMat, matrixIndex: 1, useColor: true, castShadow: true },
+  ]);
+  lod.addLevel(1500, [{ geometry: billG, material: billMat, matrixIndex: -1, useColor: true }]);
+  scene.add(lod.group);
+
+  // --- distribuição ---
+  const Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
   const palette = [0xe774b8, 0xf2c94c, 0x4d8a3d, 0x4d8a3d, 0x5da048, 0x4d8a3d];
   let placed = 0, tries = 0;
   while (placed < N && tries < N * 40) {
@@ -107,28 +183,36 @@ function trees(scene: THREE.Scene, t: Track): void {
     if (t.roadDist(x, z) < 13) continue;
     const y = terrainH(x, z), s = srange(0.8, 1.9);
     Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), srand() * Math.PI * 2);
-    M.compose(P.set(x, y + 2.3 * s, z), Q, S.set(s, s, s));
-    trunks.setMatrixAt(placed, M);
-    M.compose(P.set(x + srange(-0.4, 0.4), y + 6.2 * s * 0.92, z + srange(-0.4, 0.4)),
+    const trunkM = new THREE.Matrix4().compose(P.set(x, y, z), Q, S.set(s, s, s));
+    const canM = new THREE.Matrix4().compose(
+      P.set(x + srange(-0.4, 0.4), y + 5.7 * s, z + srange(-0.4, 0.4)),
       Q, S.set(s, s * srange(0.85, 1.15), s));
-    cans.setMatrixAt(placed, M);
-    cans.setColorAt(placed, new THREE.Color(palette[Math.floor(srand() * palette.length)])
-      .offsetHSL(0, 0, srange(-0.04, 0.04)));
+    lod.items.push({
+      pos: new THREE.Vector3(x, y + 4 * s, z),
+      scale: s,
+      color: new THREE.Color(palette[Math.floor(srand() * palette.length)])
+        .offsetHSL(0, 0, srange(-0.04, 0.04)),
+      matrices: [trunkM, canM],
+    });
     placed++;
   }
-  trunks.count = cans.count = placed;
-  scene.add(trunks, cans);
+  return lod;
 }
 
-/* ---------- pés de café em fileiras ---------- */
-function coffee(scene: THREE.Scene, t: Track): void {
+/* ================= cafezal (some além de ~650 m) ================= */
+function coffee(scene: THREE.Scene, t: Track): DistanceLod {
   const N = 1600;
-  const g = new THREE.SphereGeometry(0.85, 5, 4);
+  const lod = new DistanceLod();
+  const g = new THREE.SphereGeometry(0.85, 6, 5);
   g.scale(1, 1.25, 1);
-  const mesh = new THREE.InstancedMesh(g,
-    new THREE.MeshStandardMaterial({ color: 0x36592d, roughness: 1, flatShading: true }), N);
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(),
-        S = new THREE.Vector3(), P = new THREE.Vector3();
+  lod.addLevel(650, [{
+    geometry: g,
+    material: new THREE.MeshStandardMaterial({ color: 0x36592d, roughness: 1, flatShading: true }),
+    matrixIndex: 0, useColor: false, castShadow: true,
+  }]);
+  scene.add(lod.group);
+
+  const Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
   let placed = 0, tries = 0;
   while (placed < N && tries < N * 30) {
     tries++;
@@ -141,18 +225,18 @@ function coffee(scene: THREE.Scene, t: Track): void {
     z = Math.round(z / 3.6) * 3.6 + srange(-0.5, 0.5);
     if (t.roadDist(x, z) < 14) continue;
     const s = srange(0.8, 1.15);
-    M.compose(P.set(x, terrainH(x, z) + 0.9 * s, z), Q, S.set(s, s, s));
-    mesh.setMatrixAt(placed, M);
+    const y = terrainH(x, z);
+    const M = new THREE.Matrix4().compose(P.set(x, y + 0.9 * s, z), Q.identity(), S.set(s, s, s));
+    lod.items.push({ pos: new THREE.Vector3(x, y, z), scale: s, matrices: [M] });
     placed++;
   }
-  mesh.count = placed;
-  mesh.castShadow = true;
-  scene.add(mesh);
+  return lod;
 }
 
-/* ---------- capim na beira da estrada, com vento ---------- */
-function grassTufts(scene: THREE.Scene, t: Track): void {
-  const N = 5200;
+/* ================= capim denso só perto da câmera ================= */
+function grassTufts(scene: THREE.Scene, t: Track): DistanceLod {
+  const N = 7000;
+  const lod = new DistanceLod();
   const p1 = new THREE.PlaneGeometry(1, 1);
   const p2 = new THREE.PlaneGeometry(1, 1);
   p2.rotateY(Math.PI / 2);
@@ -160,42 +244,78 @@ function grassTufts(scene: THREE.Scene, t: Track): void {
   geo.translate(0, 0.5, 0);
 
   const mat = new THREE.MeshBasicNodeMaterial({ side: THREE.DoubleSide });
-  const vT = uv().y; // 1 = topo
-  // 3 lâminas triangulares por quad
+  const vT = uv().y;
   const tri = abs(fract(uv().x.mul(3)).sub(0.5)).mul(2);
   const halfW = mix(float(0.85), float(0.10), vT);
   mat.opacityNode = step(tri, halfW);
   mat.alphaTest = 0.5;
   const shade = hash(instanceIndex.add(17)).mul(0.35).add(0.75);
   mat.colorNode = mix(color(0x41682c), color(0x8fbf4e), vT).mul(shade);
-  // vento: topo balança
   const phase = hash(instanceIndex).mul(6.283);
   const bend = sin(time.mul(1.7).add(phase)).mul(vT.mul(vT)).mul(0.14);
   mat.positionNode = positionLocal.add(vec3(bend, 0, bend.mul(0.6)));
 
-  const mesh = new THREE.InstancedMesh(geo, mat, N);
-  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(),
-        S = new THREE.Vector3(), P = new THREE.Vector3();
+  lod.addLevel(175, [{ geometry: geo, material: mat, matrixIndex: 0, useColor: false }]);
+  scene.add(lod.group);
+
+  const Q = new THREE.Quaternion(), S = new THREE.Vector3(), P = new THREE.Vector3();
   let placed = 0, tries = 0;
   while (placed < N && tries < N * 20) {
     tries++;
     const i = Math.floor(srand() * t.NSEG);
     const side = srand() < 0.5 ? 1 : -1;
-    const off = srange(ROAD_HALF + 2.2, 42);
+    const off = srange(ROAD_HALF + 2.2, 46);
     const x = t.pts[i].x + t.norm[i].x * off * side + srange(-3, 3);
     const z = t.pts[i].z + t.norm[i].z * off * side + srange(-3, 3);
     if (t.roadDist(x, z) < ROAD_HALF + 1.6) continue;
     const s = srange(0.5, 1.15);
     Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), srand() * Math.PI * 2);
-    M.compose(P.set(x, terrainH(x, z), z), Q, S.set(s * srange(0.8, 1.4), s, s));
+    const y = terrainH(x, z);
+    const M = new THREE.Matrix4().compose(P.set(x, y, z), Q, S.set(s * srange(0.8, 1.4), s, s));
+    lod.items.push({ pos: new THREE.Vector3(x, y, z), scale: s, matrices: [M] });
+    placed++;
+  }
+  return lod;
+}
+
+/* ================= pedras na beira da estrada ================= */
+function rocks(scene: THREE.Scene, t: Track): void {
+  const N = 300;
+  const g = new THREE.DodecahedronGeometry(0.5, 0);
+  const pos = g.attributes.position as THREE.BufferAttribute;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    v.multiplyScalar(0.8 + Math.abs(Math.sin(v.x * 12.3) * Math.cos(v.z * 9.1)) * 0.45);
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  g.computeVertexNormals();
+  const mesh = new THREE.InstancedMesh(g,
+    new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true }), N);
+  mesh.castShadow = true;
+  mesh.frustumCulled = false;
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(),
+        S = new THREE.Vector3(), P = new THREE.Vector3();
+  let placed = 0, tries = 0;
+  while (placed < N && tries < N * 25) {
+    tries++;
+    const i = Math.floor(srand() * t.NSEG);
+    const side = srand() < 0.5 ? 1 : -1, off = srange(ROAD_HALF + 1.8, 55);
+    const x = t.pts[i].x + t.norm[i].x * off * side + srange(-4, 4);
+    const z = t.pts[i].z + t.norm[i].z * off * side + srange(-4, 4);
+    if (t.roadDist(x, z) < ROAD_HALF + 1.2) continue;
+    const s = srange(0.14, 0.75);
+    Q.setFromEuler(new THREE.Euler(srand() * 3, srand() * 3, srand() * 3));
+    M.compose(P.set(x, terrainH(x, z) + s * 0.25, z), Q, S.set(s, s * srange(0.6, 1), s));
     mesh.setMatrixAt(placed, M);
+    mesh.setColorAt(placed, new THREE.Color().setHSL(0.07, srange(0.05, 0.22), srange(0.32, 0.55)));
     placed++;
   }
   mesh.count = placed;
   scene.add(mesh);
 }
 
-/* ---------- cercas ---------- */
+/* ================= cercas ================= */
 function fences(scene: THREE.Scene, t: Track): void {
   const posts: [number, number, number][] = [];
   for (let i = 0; i < t.NSEG; i += 14) {
@@ -217,7 +337,7 @@ function fences(scene: THREE.Scene, t: Track): void {
   scene.add(mesh);
 }
 
-/* ---------- postes rurais ---------- */
+/* ================= postes rurais ================= */
 function poles(scene: THREE.Scene, t: Track): void {
   const N = Math.floor(t.NSEG / 60);
   const pole = new THREE.CylinderGeometry(0.14, 0.2, 9, 6);
@@ -243,7 +363,7 @@ function poles(scene: THREE.Scene, t: Track): void {
   scene.add(polesM, armsM);
 }
 
-/* ---------- chevrons nas curvas fortes ---------- */
+/* ================= chevrons nas curvas fortes ================= */
 function chevrons(scene: THREE.Scene, t: Track): void {
   const chevronTexture = canvasTex(256, 96, (g, w, h) => {
     g.fillStyle = '#d5372b'; g.fillRect(0, 0, w, h);
@@ -261,7 +381,7 @@ function chevrons(scene: THREE.Scene, t: Track): void {
   for (const c of t.corners) {
     if (c.sev > 3) continue;
     const i = c.apex;
-    const side = c.dir === 'E' ? -1 : 1; // lado externo
+    const side = c.dir === 'E' ? -1 : 1;
     const off = ROAD_HALF + 3.2;
     const x = t.pts[i].x + t.norm[i].x * off * side;
     const z = t.pts[i].z + t.norm[i].z * off * side;
@@ -269,15 +389,15 @@ function chevrons(scene: THREE.Scene, t: Track): void {
     const board = new THREE.Mesh(g, m);
     board.position.set(x, y + 1.7, z);
     board.lookAt(x - t.tang[i].x * 10, y + 1.7, z - t.tang[i].z * 10);
-    if (c.dir === 'D') board.rotation.y += Math.PI; // setas apontam p/ dentro
+    if (c.dir === 'D') board.rotation.y += Math.PI;
     const p1 = new THREE.Mesh(post, mats.grey);
     p1.position.set(x, y + 0.55, z);
     scene.add(board, p1);
   }
 }
 
-/* ---------- pórticos ---------- */
-function gantry(scene: THREE.Scene, t: Track, i: number, text: string, bg: string): void {
+/* ================= pórticos ================= */
+function gantry(scene: THREE.Scene, t: Track, i: number, text: string, bg: string, feet = false): void {
   const grp = new THREE.Group();
   const p = t.pts[i], nl = t.norm[i];
   const mk = (off: number) => {
@@ -289,7 +409,7 @@ function gantry(scene: THREE.Scene, t: Track, i: number, text: string, bg: strin
   };
   mk(7.2); mk(-7.2);
   const banner = new THREE.Mesh(new THREE.BoxGeometry(14.9, 1.7, 0.3),
-    new THREE.MeshStandardMaterial({ map: bannerTex(text, bg, '#ffffff') }));
+    new THREE.MeshStandardMaterial({ map: bannerTex(text, bg, '#ffffff', feet) }));
   banner.position.set(p.x, p.y + 5.9, p.z);
   banner.lookAt(p.x + t.tang[i].x, p.y + 5.9, p.z + t.tang[i].z);
   banner.castShadow = true;
@@ -297,25 +417,28 @@ function gantry(scene: THREE.Scene, t: Track, i: number, text: string, bg: strin
   scene.add(grp);
 }
 
-/* ---------- faixas de patrocinadores ---------- */
+/* ================= faixas de patrocinadores ================= */
 function sponsors(scene: THREE.Scene, t: Track): void {
-  const ads: [string, string][] = [
-    ['CAFÉ MARINGÁ', '#20613b'], ['TERRA ROXA MOTORSPORT', '#7a3b23'], ['COCAMAR', '#0e5a94'],
+  const ads: [string, string, boolean][] = [
+    ['RED FOOT GLOBAL TRAIL', '#b3170a', true],
+    ['CAFÉ MARINGÁ', '#20613b', false],
+    ['TERRA ROXA MOTORSPORT', '#7a3b23', false],
+    ['COCAMAR', '#0e5a94', false],
   ];
   ads.forEach((ad, j) => {
-    const i = t.START_I + 18 + j * 22, side = j % 2 ? 1 : -1;
+    const i = t.START_I + 16 + j * 20, side = j % 2 ? 1 : -1;
     const p = t.pts[i], nl = t.norm[i];
     const x = p.x + nl.x * (ROAD_HALF + 3.4) * side;
     const z = p.z + nl.z * (ROAD_HALF + 3.4) * side;
     const b = new THREE.Mesh(new THREE.PlaneGeometry(9, 1.1),
-      new THREE.MeshStandardMaterial({ map: bannerTex(ad[0], ad[1], '#fff'), side: THREE.DoubleSide }));
+      new THREE.MeshStandardMaterial({ map: bannerTex(ad[0], ad[1], '#fff', ad[2]), side: THREE.DoubleSide }));
     b.position.set(x, terrainH(x, z) + 0.8, z);
     b.lookAt(x + nl.x * -side, terrainH(x, z) + 0.8, z + nl.z * -side);
     scene.add(b);
   });
 }
 
-/* ---------- Catedral de Maringá + skyline ---------- */
+/* ================= Catedral de Maringá + skyline ================= */
 function cathedralAndCity(scene: THREE.Scene): void {
   const grp = new THREE.Group();
   const cone = new THREE.Mesh(new THREE.ConeGeometry(15, 105, 14, 1, false),
@@ -345,7 +468,7 @@ function cathedralAndCity(scene: THREE.Scene): void {
   scene.add(bg);
 }
 
-/* ---------- fazendas ---------- */
+/* ================= fazendas ================= */
 function farms(scene: THREE.Scene, t: Track): void {
   for (let f = 0; f < 7; f++) {
     const i = Math.floor(srange(0.1, 0.9) * t.NSEG);

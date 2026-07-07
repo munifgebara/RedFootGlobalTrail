@@ -1,4 +1,5 @@
 import * as THREE from 'three/webgpu';
+import { footDecalTexture, drawFoot } from './logo';
 
 export interface CarVisual {
   group: THREE.Group;          // carroceria (segue o chassi físico)
@@ -85,12 +86,42 @@ export function buildCarVisual(): CarVisual {
     g.fillText('7', 64, 70);
   });
   const numMat = new THREE.MeshStandardMaterial({ map: numTex, transparent: true, roughness: 0.5 });
+  const footTex = footDecalTexture(256, '#ffffff', '#151312');
+  const footMat = new THREE.MeshStandardMaterial({ map: footTex, transparent: true, roughness: 0.5 });
   for (const sx of [-1, 1]) {
     const pl = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.56), numMat);
     pl.position.set(sx * 0.90, 0.72, 0.18);
     pl.rotation.y = sx * Math.PI / 2;
     group.add(pl);
+    // pegada Red Foot na traseira lateral
+    const ft = new THREE.Mesh(new THREE.PlaneGeometry(0.46, 0.46), footMat);
+    ft.position.set(sx * 0.90, 0.70, -0.72);
+    ft.rotation.y = sx * Math.PI / 2;
+    group.add(ft);
   }
+  // pegada no capô (vermelha sobre a pintura, contorno preto)
+  const hoodFootMat = new THREE.MeshStandardMaterial({
+    map: footDecalTexture(256, '#8e0f05', '#151312'), transparent: true, roughness: 0.4,
+  });
+  const hoodSlope = Math.atan2(0.96 - 0.80, 2.00 - 0.98);
+  const hoodFoot = new THREE.Mesh(new THREE.PlaneGeometry(0.85, 0.85), hoodFootMat);
+  hoodFoot.position.set(0, 0.955, 1.46);
+  hoodFoot.rotation.x = -Math.PI / 2 - hoodSlope;
+  group.add(hoodFoot);
+  // faixa do para-brisa "RED FOOT GLOBAL TRAIL"
+  const stripTex = canvasTexture(1024, 96, (g) => {
+    g.fillStyle = '#c81e14'; g.fillRect(0, 0, 1024, 96);
+    g.fillStyle = '#fff'; g.font = '900 58px "Segoe UI", sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText('RED FOOT GLOBAL TRAIL', 512, 52);
+    drawFoot(g, 60, 58, 22, '#ffffff');
+    drawFoot(g, 964, 58, 22, '#ffffff');
+  });
+  const strip = new THREE.Mesh(new THREE.PlaneGeometry(1.42, 0.15),
+    new THREE.MeshStandardMaterial({ map: stripTex, roughness: 0.5 }));
+  strip.position.set(0, 1.315, 0.575);
+  strip.rotation.x = -Math.PI / 2 + Math.atan2(1.36 - 0.96, 0.98 - 0.34);
+  group.add(strip);
 
   // aerofólio
   const wing = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.06, 0.44), dark);
@@ -132,6 +163,33 @@ export function buildCarVisual(): CarVisual {
     tl.position.set(x, 0.72, -2.13);
     group.add(tl);
   }
+
+  // para-lamas alargados (meia-lua sobre cada roda)
+  const archGeo = new THREE.TorusGeometry(0.52, 0.10, 8, 14, Math.PI);
+  for (const [ax, az] of [[-0.88, 1.32], [0.88, 1.32], [-0.88, -1.32], [0.88, -1.32]]) {
+    const arch = new THREE.Mesh(archGeo, dark);
+    arch.rotation.y = Math.PI / 2;
+    arch.position.set(ax, 0.46, az);
+    arch.scale.set(1.35, 1, 1); // bojo p/ fora
+    arch.castShadow = true;
+    group.add(arch);
+  }
+  // retrovisores
+  for (const sx of [-1, 1]) {
+    const stalk = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.035, 0.05), dark);
+    stalk.position.set(sx * 0.94, 1.04, 0.52);
+    group.add(stalk);
+    const mirror = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.11, 0.17), paint);
+    mirror.position.set(sx * 1.02, 1.05, 0.50);
+    group.add(mirror);
+  }
+  // splitter dianteiro + scoop de teto
+  const splitter = new THREE.Mesh(new THREE.BoxGeometry(1.74, 0.05, 0.30), dark);
+  splitter.position.set(0, 0.15, 2.10);
+  group.add(splitter);
+  const scoop = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.11, 0.36), white);
+  scoop.position.set(0, 1.45, -0.62);
+  group.add(scoop);
 
   // para-choques e saias
   const fb = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.22, 0.3), dark);
