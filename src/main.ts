@@ -10,6 +10,7 @@ import { RallyVehicle, type VehicleInput } from './vehicle';
 import { Dust } from './dust';
 import { Hud, fmtTime } from './hud';
 import { audio, speak } from './audio';
+import { music } from './music';
 
 type GameState = 'MENU' | 'COUNTDOWN' | 'RACING' | 'FINISHED';
 
@@ -94,6 +95,7 @@ async function main(): Promise<void> {
   addEventListener('keydown', (e) => {
     if (e.repeat) return;
     audio.start();
+    music.ensureStarted();
     switch (e.code) {
       case 'ArrowUp': case 'KeyW': keys.up = true; break;
       case 'ArrowDown': case 'KeyS': keys.down = true; break;
@@ -102,6 +104,7 @@ async function main(): Promise<void> {
       case 'Space': keys.hb = true; e.preventDefault(); break;
       case 'KeyC': G.camMode = (G.camMode + 1) % 3; break;
       case 'KeyM': audio.setMuted(!audio.muted); break;
+      case 'KeyN': music.toggle(); break;
       case 'KeyR': if (G.state === 'RACING') vehicle.reset(vehicle.idx); break;
       case 'Enter':
         if (G.state === 'MENU') startRace();
@@ -298,7 +301,7 @@ async function main(): Promise<void> {
 
   /* ---------- hooks de depuração (usados nos testes automatizados) ---------- */
   (window as any).__game = {
-    tick, G, input, keys, vehicle, track, camera, renderer, scene, startRace,
+    tick, G, input, keys, vehicle, track, camera, renderer, scene, startRace, audio, music,
   };
   (window as any).__shot = async (w = 720, q = 0.55) => {
     await postProcessing.renderAsync();

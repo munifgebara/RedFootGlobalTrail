@@ -1,9 +1,9 @@
 /** Motor, cascalho, bipes de largada (WebAudio) e voz do copiloto. */
 class AudioSystem {
-  private ctx: AudioContext | null = null;
+  ctx: AudioContext | null = null;      // exposto p/ a música
+  master!: GainNode;                    // idem
   private started = false;
   muted = false;
-  private master!: GainNode;
   private eGain!: GainNode;
   private nGain!: GainNode;
   private o1!: OscillatorNode;
