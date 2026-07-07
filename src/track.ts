@@ -107,8 +107,9 @@ export function buildTrack(): Track {
         }
         const clen = (i - st) * DS;
         if (clen > 10 && maxK > TH) {
+          // kappa positivo = heading crescendo = curva à ESQUERDA (y-up, z-frente)
           corners.push({
-            at: st * DS, endAt: i * DS, dir: sign > 0 ? 'D' : 'E',
+            at: st * DS, endAt: i * DS, dir: sign > 0 ? 'E' : 'D',
             sev: sevFromR(1 / maxK), long: clen > 85,
             apex: Math.floor((st + i) / 2), called: false,
           });

@@ -381,7 +381,8 @@ function chevrons(scene: THREE.Scene, t: Track): void {
   for (const c of t.corners) {
     if (c.sev > 3) continue;
     const i = c.apex;
-    const side = c.dir === 'E' ? -1 : 1;
+    // lado externo: norm aponta p/ a direita do sentido da pista
+    const side = c.dir === 'E' ? 1 : -1;
     const off = ROAD_HALF + 3.2;
     const x = t.pts[i].x + t.norm[i].x * off * side;
     const z = t.pts[i].z + t.norm[i].z * off * side;
@@ -389,7 +390,7 @@ function chevrons(scene: THREE.Scene, t: Track): void {
     const board = new THREE.Mesh(g, m);
     board.position.set(x, y + 1.7, z);
     board.lookAt(x - t.tang[i].x * 10, y + 1.7, z - t.tang[i].z * 10);
-    if (c.dir === 'D') board.rotation.y += Math.PI;
+    if (c.dir === 'E') board.rotation.y += Math.PI; // setas p/ dentro da curva
     const p1 = new THREE.Mesh(post, mats.grey);
     p1.position.set(x, y + 0.55, z);
     scene.add(board, p1);

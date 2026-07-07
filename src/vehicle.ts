@@ -194,10 +194,12 @@ export class RallyVehicle {
       if (this.offroad) b += 1.6; // arrasto do mato
       this.vehicle.setBrake(b, w);
     }
-    // esterço encolhe com a velocidade (estabilidade em alta, agilidade em baixa)
+    // esterço encolhe com a velocidade (estabilidade em alta, agilidade em baixa).
+    // Sinal negativo: com y-up e frente em +z, virar à DIREITA reduz o heading
+    // (a direita do carro é -x — mesma convenção da câmera do three).
     const steerMax = 0.55 / (1 + speed * 0.028);
-    this.vehicle.setSteeringValue(input.steer * steerMax, 0);
-    this.vehicle.setSteeringValue(input.steer * steerMax, 1);
+    this.vehicle.setSteeringValue(-input.steer * steerMax, 0);
+    this.vehicle.setSteeringValue(-input.steer * steerMax, 1);
 
     // arrasto aerodinâmico + downforce (estabilidade em alta)
     const v = this.chassis.velocity;
