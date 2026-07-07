@@ -5,11 +5,17 @@ import {
 } from 'three/tsl';
 import { cloudShadowNode } from './sky';
 
-/** Relevo analítico — colinas suaves do norte do Paraná. */
+/**
+ * Relevo analítico — vales e morros do norte do Paraná.
+ * Quatro oitavas: ondulação longa (~±26 m, subidas/descidas de verdade),
+ * colinas médias, morrotes e micro-relevo. Gradiente máximo ~11%
+ * (grau de rampa que o carro sobe com folga e sente na física).
+ */
 export function terrainH(x: number, z: number): number {
-  return 8.0 * Math.sin(x * 0.0021 + 1.7) * Math.cos(z * 0.0017)
-       + 4.0 * Math.sin(x * 0.0043 + 0.4) * Math.sin(z * 0.0038 + 2.0)
-       + 1.3 * Math.sin(x * 0.019) * Math.cos(z * 0.016 + 1.1);
+  return 26.0 * Math.sin(x * 0.00095 + 1.1) * Math.cos(z * 0.00082 + 0.3)
+       + 12.0 * Math.sin(x * 0.0021 + 1.7) * Math.cos(z * 0.0017)
+       + 5.0 * Math.sin(x * 0.0043 + 0.4) * Math.sin(z * 0.0038 + 2.0)
+       + 1.6 * Math.sin(x * 0.019) * Math.cos(z * 0.016 + 1.1);
 }
 
 export function terrainNormal(x: number, z: number): THREE.Vector3 {
