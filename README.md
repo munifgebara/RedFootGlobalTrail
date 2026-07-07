@@ -8,7 +8,23 @@ dirt, coffee fields, pink and yellow ipê trees, farm houses and the Maringá
 Cathedral on the horizon. One ~6 km special stage with a co-driver calling
 pacenotes, and the 3D Red Foot logo monument spinning at the start line.
 
-First location reference: [Ecogarden on Google Maps](https://maps.app.goo.gl/sVvb3SNtY87cxKEf6).
+**The stage follows real-world roads and elevations.** The layout comes from
+OpenStreetMap ways and the heights from SRTM (30 m) around
+[Ecogarden on Google Maps](https://maps.app.goo.gl/sVvb3SNtY87cxKEf6)
+(−23.469248, −51.900126), baked into `src/data/ecogarden.json` by
+`tools/build-map.mjs` — the site stays fully static.
+
+```bash
+# rebake (or bake a brand-new location for a future stage):
+node tools/build-map.mjs <lat> <lng> <name>
+```
+
+The tool picks a long route through the real road graph, resamples it,
+fetches an elevation grid (OpenTopoData/SRTM), applies light exaggeration
+(1.15×) and then "grades" the road like a civil engineer would: the route
+profile is smoothed and capped at 12% grade, and the terrain is cut/filled
+in a corridor around it, so physics, road ribbon and scenery stay perfectly
+in sync.
 
 **Play it:** open the repository's GitHub Pages (or run it locally, below).
 

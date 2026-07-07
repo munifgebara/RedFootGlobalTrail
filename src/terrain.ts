@@ -5,17 +5,38 @@ import {
 } from 'three/tsl';
 import { cloudShadowNode } from './sky';
 
+import eco from './data/ecogarden.json';
+
 /**
- * Relevo analítico — vales e morros do norte do Paraná.
- * Quatro oitavas: ondulação longa (~±26 m, subidas/descidas de verdade),
- * colinas médias, morrotes e micro-relevo. Gradiente máximo ~11%
- * (grau de rampa que o carro sobe com folga e sente na física).
+ * Relevo REAL: grade de elevação SRTM (30 m) da região do Ecogarden em
+ * Maringá, assada em src/data/ecogarden.json pelo tools/build-map.mjs.
+ * Amostragem bilinear com clamp nas bordas + micro-relevo procedural
+ * por cima (a SRTM não enxerga ondulações menores que ~30 m).
  */
+const G = eco.grid;
+function gridH(x: number, z: number): number {
+  const fx = Math.min(Math.max((x - G.x0) / G.dx, 0), G.nx - 1.001);
+  const fz = Math.min(Math.max((z - G.z0) / G.dx, 0), G.nz - 1.001);
+  const i = Math.floor(fx), k = Math.floor(fz);
+  const tx = fx - i, tz = fz - k;
+  const h00 = G.h[k * G.nx + i], h10 = G.h[k * G.nx + i + 1];
+  const h01 = G.h[(k + 1) * G.nx + i], h11 = G.h[(k + 1) * G.nx + i + 1];
+  return (h00 * (1 - tx) + h10 * tx) * (1 - tz) + (h01 * (1 - tx) + h11 * tx) * tz;
+}
+/**
+ * "Terraplanagem" contínua: buildTrack registra um grader que mistura a
+ * altura do terreno com o perfil suavizado da estrada num corredor — assim
+ * a pista respeita rampa máx. de 12% mesmo onde o SRTM é íngreme/ruidoso,
+ * e física, fita da estrada e cenário continuam usando a MESMA função.
+ */
+let roadGrader: ((x: number, z: number, h: number) => number) | null = null;
+export function setRoadGrader(fn: (x: number, z: number, h: number) => number): void {
+  roadGrader = fn;
+}
+
 export function terrainH(x: number, z: number): number {
-  return 26.0 * Math.sin(x * 0.00095 + 1.1) * Math.cos(z * 0.00082 + 0.3)
-       + 12.0 * Math.sin(x * 0.0021 + 1.7) * Math.cos(z * 0.0017)
-       + 5.0 * Math.sin(x * 0.0043 + 0.4) * Math.sin(z * 0.0038 + 2.0)
-       + 1.6 * Math.sin(x * 0.019) * Math.cos(z * 0.016 + 1.1);
+  const h = gridH(x, z) + 0.9 * Math.sin(x * 0.019) * Math.cos(z * 0.016 + 1.1);
+  return roadGrader ? roadGrader(x, z, h) : h;
 }
 
 export function terrainNormal(x: number, z: number): THREE.Vector3 {

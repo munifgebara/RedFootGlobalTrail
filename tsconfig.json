@@ -8,6 +8,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "types": ["vite/client"]

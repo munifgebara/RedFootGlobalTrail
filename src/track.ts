@@ -2,22 +2,15 @@ import * as THREE from 'three/webgpu';
 import {
   uv, positionWorld, mx_noise_float, color, float, vec3, smoothstep, mix, attribute,
 } from 'three/tsl';
-import { terrainH } from './terrain';
+import { terrainH, setRoadGrader } from './terrain';
 import { cloudShadowNode } from './sky';
 
 export const ROAD_HALF = 4.3;
 export const DS = 2.5;
 
-/* ---------- traçado da especial ---------- */
-const CTRL: [number, number][] = [
-  [0, -260], [0, -120], [0, 0], [12, 180], [64, 330], [165, 420], [300, 462], [430, 420],
-  [520, 300], [535, 185], [505, 120], [560, 60], [660, 30], [762, 12], [900, 62], [980, 192], [962, 340],
-  [1032, 482], [1172, 532], [1322, 502], [1442, 402], [1462, 252], [1562, 142],
-  [1702, 122], [1842, 182], [1922, 312], [1902, 472], [1982, 612], [2132, 662],
-  [2292, 632], [2402, 522], [2422, 372], [2455, 318], [2420, 278], [2470, 238], [2560, 250], [2672, 242], [2812, 302],
-  [2872, 442], [2842, 592], [2922, 732], [3072, 782], [3232, 752], [3342, 642],
-  [3362, 492], [3302, 352], [3302, 210],
-];
+/* ---------- traçado da especial: ruas/estradas reais (OSM) ---------- */
+import eco from './data/ecogarden.json';
+const CTRL: [number, number][] = eco.route as [number, number][];
 
 export interface Corner {
   at: number; endAt: number; dir: 'E' | 'D'; sev: number; long: boolean;
@@ -37,8 +30,9 @@ export interface Track {
 }
 
 export function buildTrack(): Track {
+  // 'centripetal' evita loops/overshoot com pontos reais de espaçamento irregular
   const curve = new THREE.CatmullRomCurve3(
-    CTRL.map((p) => new THREE.Vector3(p[0], 0, p[1])), false, 'catmullrom', 0.35);
+    CTRL.map((p) => new THREE.Vector3(p[0], 0, p[1])), false, 'centripetal');
   const len = curve.getLength();
   const NSEG = Math.floor(len / DS);
   const pts = curve.getSpacedPoints(NSEG);
@@ -61,8 +55,8 @@ export function buildTrack(): Track {
     if (!grid.has(k)) grid.set(k, []);
     grid.get(k)!.push(i);
   }
-  const roadDist = (x: number, z: number) => {
-    let best = 1e9;
+  const roadNearest = (x: number, z: number): { d: number; i: number } => {
+    let best = 1e18, bi = -1;
     const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
       const arr = grid.get((cx + dx) + '_' + (cz + dz));
@@ -70,11 +64,43 @@ export function buildTrack(): Track {
       for (const i of arr) {
         const ddx = pts[i].x - x, ddz = pts[i].z - z;
         const d = ddx * ddx + ddz * ddz;
-        if (d < best) best = d;
+        if (d < best) { best = d; bi = i; }
       }
     }
-    return Math.sqrt(best);
+    return { d: Math.sqrt(best), i: bi };
   };
+  const roadDist = (x: number, z: number) => roadNearest(x, z).d;
+
+  /* ---------- perfil da estrada: suave e com rampa limitada ---------- */
+  const prof = new Float32Array(NSEG + 1);
+  for (let i = 0; i <= NSEG; i++) prof[i] = terrainH(pts[i].x, pts[i].z);
+  for (let pass = 0; pass < 2; pass++) {
+    const src = prof.slice();
+    for (let i = 0; i <= NSEG; i++) {
+      let s = 0, c = 0;
+      for (let j = -12; j <= 12; j++) {
+        const k = i + j;
+        if (k >= 0 && k <= NSEG) { s += src[k]; c++; }
+      }
+      prof[i] = s / c;
+    }
+    const maxDy = 0.12 * DS; // 12%
+    for (let i = 1; i <= NSEG; i++) {
+      prof[i] = Math.max(prof[i - 1] - maxDy, Math.min(prof[i - 1] + maxDy, prof[i]));
+    }
+    for (let i = NSEG - 1; i >= 0; i--) {
+      prof[i] = Math.max(prof[i + 1] - maxDy, Math.min(prof[i + 1] + maxDy, prof[i]));
+    }
+  }
+  for (let i = 0; i <= NSEG; i++) pts[i].y = prof[i];
+
+  // corte/aterro contínuo: pista plana no perfil, encostas fundem a ~45 m
+  setRoadGrader((x, z, h) => {
+    const n = roadNearest(x, z);
+    if (n.i < 0 || n.d > 45) return h;
+    const w = n.d < 9 ? 1 : 1 - (n.d - 9) / 36;
+    return h * (1 - w) + prof[n.i] * w;
+  });
 
   /* ---------- pacenotes ---------- */
   const kappa = new Float32Array(NSEG + 1);
