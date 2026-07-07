@@ -1,38 +1,40 @@
-# Ideias registradas para as próximas iterações
+# Ideas registered for future iterations
 
-## 1) Trocar carro por corrida a pé (cross) — "RedFoot"
+## 1) Replace the car with a cross-country foot race — "Red Foot"
 
-- Em vez de um jogo de carros, um jogo de **corrida a pé estilo cross**.
-- Mecânica de corrida: o jogador aperta **teclas alternadamente** para correr —
-  **`1` = perna esquerda, `0` = perna direita** (ritmo alternado dá velocidade;
-  errar a alternância quebra o passo).
-- Continuar nos **arredores de Maringá** (mesma vibe: terra roxa, cafezais, ipês).
-- **Avatar fixo por enquanto, com roupa de corrida** — personalização fica para depois.
+- Instead of a car game, a **cross-country running game**.
+- Running mechanic: the player presses **keys alternately** to run —
+  **`1` = left leg, `0` = right leg** (steady alternation builds speed;
+  breaking the rhythm breaks the stride).
+- Keep the **Maringá surroundings** (same vibe: red earth, coffee fields, ipês).
+- **Fixed avatar for now, wearing running clothes** — customization comes later.
 
-## 2) Multi-mapas em pontos turísticos reais
+## 2) Multiple maps at real tourist landmarks
 
-- O jogador **escolhe o mapa** que quiser.
-- Para criar os mapas, usar o **Google Maps** como referência em pontos
-  turísticos de: Maringá → Paraná → Brasil → América do Sul → América do Norte
-  → Europa → demais continentes.
-- Preferência por lugares famosos **que já tenham corridas a pé**, por exemplo:
+- The player **chooses the map** they want.
+- To build the maps, use **Google Maps** as reference at tourist spots,
+  expanding outward: Maringá → Paraná → Brazil → South America →
+  North America → Europe → other continents.
+- Prefer famous places **that already host foot races**, for example:
   - Corrida das Catedrais (Maringá)
-  - Prova Maringá–Londrina
-  - Cataratas do Iguaçu / Foz do Iguaçu
+  - Maringá–Londrina road race
+  - Iguaçu Falls / Foz do Iguaçu
   - Grand Canyon
   - Machu Picchu
   - etc.
-- Sempre com **pegada meio cross** (trilha, terra, subidas).
+- Always with a **cross-country feel** (trails, dirt, climbs).
+- **First location:** Ecogarden, Maringá —
+  https://maps.app.goo.gl/sVvb3SNtY87cxKEf6 (already the name of Stage 1).
 
-## 3) Avatares
+## 3) Avatars
 
-- Primeira etapa: escolher entre **avatar homem e mulher**.
-- Segunda etapa (depois): **personalização** dos avatares.
+- First step: choose between **male and female avatars**.
+- Second step (later): **avatar customization**.
 
-## 4) Pipeline de novas pistas
+## 4) New-track pipeline
 
-- Deve ser possível para o desenvolvedor **adicionar novas pistas** de forma
-  simples, gerenciadas como **tarefas/issues do GitHub** (uma issue por pista,
-  com o traçado/refs do Google Maps na descrição).
+- Developers should be able to **add new tracks** easily, managed as
+  **GitHub issues/tasks** (one issue per track, with the route/Google Maps
+  references in the description).
 
-> Registro feito em 07/07/2026 — implementação fica para as próximas sessões.
+> Registered on 2026-07-07 — implementation left for upcoming sessions.

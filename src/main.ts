@@ -141,11 +141,11 @@ async function main(): Promise<void> {
       if (n > 0) { cd.textContent = String(n); audio.beep(440); }
       else {
         clearInterval(iv);
-        cd.textContent = 'JÁ!';
+        cd.textContent = 'GO!';
         cd.classList.add('go');
         audio.beep(880, 0.5, 0.45);
         G.state = 'RACING';
-        speak('valendo!');
+        speak('go!');
         setTimeout(() => hide('countdown'), 700);
       }
     }, 1000);
@@ -160,13 +160,13 @@ async function main(): Promise<void> {
     const rec = $('newRecord');
     const avg = (track.RACE_KM / (G.time / 3600)).toFixed(0);
     if (isNaN(G.best) || G.time < G.best) {
-      detail.textContent = (isNaN(G.best) ? '' : 'anterior: ' + fmtTime(G.best) + ' · ') + 'média ' + avg + ' km/h';
+      detail.textContent = (isNaN(G.best) ? '' : 'previous: ' + fmtTime(G.best) + ' · ') + 'avg ' + avg + ' km/h';
       rec.style.display = 'block';
       G.best = G.time;
       localStorage.setItem('rally-maringa-best', String(G.best));
-      speak('novo recorde!');
+      speak('new stage record!');
     } else {
-      detail.textContent = '+' + (G.time - G.best).toFixed(1) + 's do recorde (' + fmtTime(G.best) + ') · média ' + avg + ' km/h';
+      detail.textContent = '+' + (G.time - G.best).toFixed(1) + 's off the best (' + fmtTime(G.best) + ') · avg ' + avg + ' km/h';
       rec.style.display = 'none';
     }
     hud.refreshBest(G.best);
@@ -348,5 +348,5 @@ async function main(): Promise<void> {
 main().catch((e) => {
   console.error(e);
   const el = document.querySelector('#loading div:last-child');
-  if (el) el.textContent = 'ERRO AO INICIAR: ' + e;
+  if (el) el.textContent = 'FAILED TO START: ' + e;
 });

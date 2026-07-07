@@ -80,7 +80,7 @@ export function speak(txt: string): void {
   if (audio.muted) return;
   try {
     const u = new SpeechSynthesisUtterance(txt);
-    u.lang = 'pt-BR'; u.rate = 1.25; u.pitch = 1.0; u.volume = 0.9;
+    u.lang = 'en-US'; u.rate = 1.15; u.pitch = 1.0; u.volume = 0.9;
     speechSynthesis.speak(u);
-  } catch { /* sem voz */ }
+  } catch { /* no voice available */ }
 }

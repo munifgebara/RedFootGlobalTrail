@@ -9,9 +9,9 @@ export function fmtTime(t: number): string {
   return String(m).padStart(2, '0') + ':' + s.toFixed(1).padStart(4, '0');
 }
 
-const SEV_TXT: Record<number, string> = { 1: 'GRAMPO', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6' };
+const SEV_TXT: Record<number, string> = { 1: 'HAIRPIN', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6' };
 const SEV_VOICE: Record<number, string> = {
-  1: 'grampo', 2: 'dois', 3: 'três', 4: 'quatro', 5: 'cinco', 6: 'seis',
+  1: 'hairpin', 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six',
 };
 
 export class Hud {
@@ -62,8 +62,8 @@ export class Hud {
 
   refreshBest(best: number): void {
     const txt = isNaN(best) ? '—' : fmtTime(best);
-    $('bestLine').textContent = 'recorde: ' + txt;
-    $('chipBest').textContent = '🏆 recorde: ' + txt;
+    $('bestLine').textContent = 'best: ' + txt;
+    $('chipBest').textContent = '🏆 best: ' + txt;
   }
 
   /** Atualiza HUD (limitado a ~12 Hz para não estressar o DOM). */
@@ -97,7 +97,7 @@ export class Hud {
     const arrow = $('pnArrow'), main = $('pnMain'), dist = $('pnDist');
     if (!next || next.at - dNow > 260) {
       arrow.textContent = '▲'; arrow.className = 'sevEasy';
-      main.textContent = 'RETA'; main.className = '';
+      main.textContent = 'STRAIGHT'; main.className = '';
       dist.textContent = next ? Math.round((next.at - dNow) / 10) * 10 + ' m' : '';
       return;
     }
@@ -105,12 +105,12 @@ export class Hud {
     const sevClass = next.sev <= 2 ? 'sevHard' : next.sev <= 4 ? 'sevMed' : 'sevEasy';
     arrow.textContent = next.dir === 'E' ? '⬅' : '➡';
     arrow.className = sevClass;
-    main.textContent = (next.dir === 'E' ? 'ESQ ' : 'DIR ') + SEV_TXT[next.sev] + (next.long ? ' LONGA' : '');
+    main.textContent = (next.dir === 'E' ? 'LEFT ' : 'RIGHT ') + SEV_TXT[next.sev] + (next.long ? ' LONG' : '');
     main.className = sevClass;
-    dist.textContent = d > 15 ? Math.round(d / 10) * 10 + ' m' : 'AGORA';
+    dist.textContent = d > 15 ? Math.round(d / 10) * 10 + ' m' : 'NOW';
     if (!next.called && d < 150 && racing) {
       next.called = true;
-      speak((next.dir === 'E' ? 'esquerda ' : 'direita ') + SEV_VOICE[next.sev] + (next.long ? ' longa' : ''));
+      speak((next.dir === 'E' ? 'left ' : 'right ') + SEV_VOICE[next.sev] + (next.long ? ' long' : ''));
     }
   }
 

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Red Foot Global Trail — SS1 Estrada do Café · Maringá</title>
+<title>Red Foot Global Trail — SS1 Ecogarden · Maringá</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.5 -1.5 3 3"><g fill="%23d81f10" stroke="%23151312" stroke-width=".09"><ellipse cx="0" cy=".35" rx=".62" ry=".85" transform="rotate(-12)"/><circle cx="-.52" cy="-.72" r=".24"/><circle cx="-.05" cy="-.92" r=".19"/><circle cx=".38" cy="-.88" r=".165"/><circle cx=".68" cy="-.68" r=".14"/><circle cx=".88" cy="-.40" r=".12"/></g></svg>'>
 <style>
   :root{
@@ -110,17 +110,17 @@
 
 <div id="hud">
   <div id="stagePlate" class="panel">
-    <div class="ss">SS1 · TERRA</div>
-    <div class="nm">Estrada do Café</div>
-    <div class="loc">Red Foot Global Trail · Maringá-PR</div>
+    <div class="ss">SS1 · GRAVEL</div>
+    <div class="nm">Ecogarden</div>
+    <div class="loc">Maringá — Paraná · Brazil</div>
   </div>
   <div id="timerBox" class="panel">
     <div id="timer">00:00.0</div>
-    <div id="bestLine">recorde: —</div>
+    <div id="bestLine">best: —</div>
   </div>
   <div id="pacenote" class="panel">
     <div id="pnArrow">▲</div>
-    <div id="pnMain">RETA</div>
+    <div id="pnMain">STRAIGHT</div>
     <div id="pnDist"></div>
   </div>
   <div id="speedBox" class="panel">
@@ -132,12 +132,12 @@
     <div id="progBar"><div id="progFill"></div></div>
     <div id="kmText"></div>
   </div>
-  <div id="hints"><b>C</b> câmera · <b>ESPAÇO</b> freio de mão · <b>R</b> voltar à pista · <b>M</b> som</div>
+  <div id="hints"><b>C</b> camera · <b>SPACE</b> handbrake · <b>R</b> reset to track · <b>M</b> sound</div>
 </div>
 
 <div id="loading" class="overlay">
   <div class="spin"></div>
-  <div style="letter-spacing:.2em;font-size:13px;color:#9fb3c8">CARREGANDO ESPECIAL…</div>
+  <div style="letter-spacing:.2em;font-size:13px;color:#9fb3c8">LOADING STAGE…</div>
 </div>
 
 <div id="menu" class="overlay hidden">
@@ -150,32 +150,32 @@
       <circle cx=".88" cy="-.40" r=".12"/>
     </g>
   </svg>
-  <div class="titleKicker" style="margin-top:10px">RALLY DE MARINGÁ · CAMPEONATO PARANAENSE</div>
+  <div class="titleKicker" style="margin-top:10px">A <a href="https://www.gebaralabs.dev/" target="_blank" rel="noopener" style="color:inherit">GEBARA LABS</a> EXPERIMENT</div>
   <h1>RED FOOT <span class="red">GLOBAL TRAIL</span></h1>
-  <div class="subtitle">Especial 1 — Estrada do Café · terra roxa do norte do Paraná</div>
+  <div class="subtitle">Stage 1 — Ecogarden · red-earth backroads of Maringá, Brazil</div>
   <div class="stageInfo">
     <div class="chip">📏 <span id="chipLen">—</span> km</div>
-    <div class="chip">🟤 Piso: terra</div>
-    <div class="chip">☀️ Tarde limpa</div>
-    <div class="chip" id="chipBest">🏆 recorde: —</div>
+    <div class="chip">🟤 Surface: dirt</div>
+    <div class="chip">☀️ Clear afternoon</div>
+    <div class="chip" id="chipBest">🏆 best: —</div>
   </div>
   <div class="controls">
-    <div><kbd>W</kbd>/<kbd>↑</kbd> acelerar</div><div><kbd>S</kbd>/<kbd>↓</kbd> freio / ré</div>
-    <div><kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> direção</div><div><kbd>ESPAÇO</kbd> freio de mão (drift)</div>
-    <div><kbd>C</kbd> câmera</div><div><kbd>R</kbd> voltar à pista</div>
+    <div><kbd>W</kbd>/<kbd>↑</kbd> accelerate</div><div><kbd>S</kbd>/<kbd>↓</kbd> brake / reverse</div>
+    <div><kbd>A</kbd><kbd>D</kbd>/<kbd>←</kbd><kbd>→</kbd> steering</div><div><kbd>SPACE</kbd> handbrake (drift)</div>
+    <div><kbd>C</kbd> camera</div><div><kbd>R</kbd> reset to track</div>
   </div>
-  <div class="pressStart">PRESSIONE <span>ENTER</span> PARA LARGAR</div>
-  <div class="credit">Vite · TypeScript · three.js WebGPU/TSL · cannon-es — 100% estático</div>
+  <div class="pressStart">PRESS <span>ENTER</span> TO START</div>
+  <div class="credit">Made by <a href="https://www.gebaralabs.dev/" target="_blank" rel="noopener" style="color:#9fb3c8">GEBARA Labs</a> · Vite · TypeScript · three.js WebGPU/TSL · cannon-es — fully static</div>
 </div>
 
 <div id="countdown" class="overlay hidden"><div id="cdNum">3</div></div>
 
 <div id="results" class="overlay hidden">
-  <h2>FIM DE ESPECIAL</h2>
+  <h2>STAGE COMPLETE</h2>
   <div id="finalTime">00:00.0</div>
   <div id="resultDetail"></div>
-  <div id="newRecord">★ NOVO RECORDE DO TRECHO ★</div>
-  <div class="pressStart" style="margin-top:26px">PRESSIONE <span>ENTER</span> PARA CORRER DE NOVO</div>
+  <div id="newRecord">★ NEW STAGE RECORD ★</div>
+  <div class="pressStart" style="margin-top:26px">PRESS <span>ENTER</span> TO RACE AGAIN</div>
 </div>
 
 <script type="module" src="./src/main.ts"></script>

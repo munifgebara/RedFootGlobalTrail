@@ -1,73 +1,78 @@
 # 👣 Red Foot Global Trail
 
-Etapa 1: **Rally de Maringá** — simulador de rally 3D 100% no navegador,
-ambientado na zona rural de Maringá-PR: terra roxa, cafezais, ipês rosa e
-amarelos, sedes de fazenda e a Catedral no horizonte. Uma especial de ~6 km
-("SS1 — Estrada do Café") com copiloto falando pacenotes em português, e o
-monumento 3D da logo Red Foot girando na largada.
+A [GEBARA Labs](https://www.gebaralabs.dev/) experiment.
 
-**Jogue agora:** abra o GitHub Pages do repositório (ou rode localmente, abaixo).
+**Stage 1: Ecogarden** — a 3D rally simulator that runs 100% in the browser,
+set on the red-earth backroads around Maringá, Paraná, Brazil: terra roxa
+dirt, coffee fields, pink and yellow ipê trees, farm houses and the Maringá
+Cathedral on the horizon. One ~6 km special stage with a co-driver calling
+pacenotes, and the 3D Red Foot logo monument spinning at the start line.
+
+First location reference: [Ecogarden on Google Maps](https://maps.app.goo.gl/sVvb3SNtY87cxKEf6).
+
+**Play it:** open the repository's GitHub Pages (or run it locally, below).
 
 ## Stack
 
-| Camada | Tecnologia |
+| Layer | Technology |
 |---|---|
-| Build | Vite + TypeScript (site 100% estático) |
-| Render | three.js **WebGPU** com materiais **TSL** (fallback automático p/ WebGL 2) |
-| Física | **cannon-es** — `RaycastVehicle` sobre heightfield do relevo |
-| Pós-processo | Bloom (faróis/sol) + vinheta via TSL `PostProcessing` |
-| Áudio | WebAudio (motor, cascalho, bipes) + copiloto via `speechSynthesis` pt-BR |
+| Build | Vite + TypeScript (fully static site) |
+| Rendering | three.js **WebGPU** with **TSL** materials (automatic WebGL 2 fallback) |
+| Physics | **cannon-es** — `RaycastVehicle` on a terrain heightfield |
+| Post-processing | Bloom (headlights/sun) + vignette via TSL `PostProcessing` |
+| Audio | WebAudio (engine, gravel, beeps) + co-driver voice via `speechSynthesis` |
 
-Tudo gerado proceduralmente em tempo de carga: pista (Catmull-Rom), relevo,
-talhões de cultura, ~560 árvores, ~1600 pés de café, capim com vento, nuvens
-animadas, pacenotes extraídos da curvatura do traçado — e a identidade
-**Red Foot** (pegada vermelha) desenhada em canvas e extrudada em 3D.
+Everything is generated procedurally at load time: track (Catmull-Rom),
+terrain, crop fields, ~560 trees, ~1600 coffee bushes, wind-blown grass,
+animated clouds, pacenotes extracted from the track curvature — and the
+**Red Foot** identity (the red footprint) drawn on canvas and extruded in 3D.
 
-### LOD multi-qualidade (curta / média / longa distância)
+### Multi-quality model LOD (short / medium / long range)
 
-| Distância | Árvores | Cafezal | Capim |
+| Distance | Trees | Coffee | Grass |
 |---|---|---|---|
-| ≤ 130 m | tronco com galhos + copa multi-lobos | modelo cheio | denso (≤ 175 m) |
-| ≤ 460 m | copa única facetada | modelo cheio | — |
-| ≤ 1500 m | billboard tintado por instância | some (> 650 m) | — |
+| ≤ 130 m | branched trunk + multi-lobe canopy | full model | dense (≤ 175 m) |
+| ≤ 460 m | single faceted canopy | full model | — |
+| ≤ 1500 m | per-instance tinted billboard | culled (> 650 m) | — |
 
-O re-bucketing roda a cada ~0,3 s e cada nível é fatiado em sub-meshes de
-1000 instâncias (limite de 64 KB de uniform buffer do WebGPU). Sombras de
-nuvens varrem terreno e estrada em sincronia com o céu (ruído TSL).
+Re-bucketing runs every ~0.3 s and each level is split into 1000-instance
+sub-meshes (WebGPU's 64 KB uniform-buffer binding limit). Cloud shadows sweep
+the terrain and the road in sync with the sky (TSL noise).
 
-## Controles
+## Controls
 
-- **W / ↑** acelerar · **S / ↓** freio & ré
-- **A D / ← →** direção · **ESPAÇO** freio de mão (drift)
-- **C** câmera (perseguição / capô / TV) · **R** voltar à pista · **M** som
+- **W / ↑** accelerate · **S / ↓** brake & reverse
+- **A D / ← →** steering · **SPACE** handbrake (drift)
+- **C** camera (chase / hood / TV) · **R** reset to track · **M** sound
 
-## Rodando localmente
+## Running locally
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # gera docs/ (estático)
-npm run preview    # serve o build em http://localhost:4300
+npm run build      # outputs docs/ (static)
+npm run preview    # serves the build at http://localhost:4300
 ```
 
-Dica: acrescente `?webgl` à URL para forçar o backend WebGL 2.
+Tip: append `?webgl` to the URL to force the WebGL 2 backend.
 
-## Publicação no GitHub Pages
+## Publishing on GitHub Pages
 
-O build vai para **`docs/`** com caminhos relativos, então basta:
+The build goes to **`docs/`** with relative paths, so all it takes is:
 
-1. Push para o branch `main`;
+1. Push to the `main` branch;
 2. **Settings → Pages → Deploy from a branch → `main` / `docs`**.
 
-Nenhum workflow ou servidor é necessário — só páginas estáticas.
+No workflow or server needed — static pages only.
 
-## Roadmap (ver [IDEAS.md](IDEAS.md))
+## Roadmap (see [IDEAS.md](IDEAS.md))
 
-- 🏃 **Virar um jogo de corrida a pé (cross)**: teclas `1`/`0` alternadas para
-  as pernas, avatar de corrida, ainda nos arredores de Maringá.
-- 🗺️ **Multi-mapas** em pontos turísticos reais (Maringá-Londrina, Cataratas,
-  Grand Canyon, Machu Picchu…), avatares personalizáveis, novas pistas via issues.
+- 🏃 **Become a cross-country foot race**: alternate the `1`/`0` keys to run
+  (left/right leg), runner avatar, still around Maringá.
+- 🗺️ **Multiple maps** at real tourist landmarks (Maringá–Londrina,
+  Iguaçu Falls, Grand Canyon, Machu Picchu…), customizable avatars,
+  new tracks added via GitHub issues.
 
 ---
 
-POC gerada com Claude Code para avaliação de modelos de IA.
+Built with Claude Code as an AI-model evaluation POC, for GEBARA Labs.

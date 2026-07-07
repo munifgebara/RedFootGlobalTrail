@@ -82,7 +82,7 @@ export function buildScenery(scene: THREE.Scene, t: Track): SceneryController {
   poles(scene, t);
   chevrons(scene, t);
   gantry(scene, t, t.START_I, 'RED FOOT GLOBAL TRAIL', '#c81e14', true);
-  gantry(scene, t, t.FINISH_I, 'CHEGADA', '#111418');
+  gantry(scene, t, t.FINISH_I, 'FINISH', '#111418');
   sponsors(scene, t);
   cathedralAndCity(scene);
   farms(scene, t);
@@ -421,8 +421,8 @@ function gantry(scene: THREE.Scene, t: Track, i: number, text: string, bg: strin
 function sponsors(scene: THREE.Scene, t: Track): void {
   const ads: [string, string, boolean][] = [
     ['RED FOOT GLOBAL TRAIL', '#b3170a', true],
+    ['GEBARA LABS', '#23262d', false],
     ['CAFÉ MARINGÁ', '#20613b', false],
-    ['TERRA ROXA MOTORSPORT', '#7a3b23', false],
     ['COCAMAR', '#0e5a94', false],
   ];
   ads.forEach((ad, j) => {
