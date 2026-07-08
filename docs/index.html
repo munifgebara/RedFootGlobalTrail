@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Red Foot Global Trail — SS1 Ecogarden · Maringá</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.5 -1.5 3 3"><g fill="%23d81f10" stroke="%23151312" stroke-width=".09"><ellipse cx="0" cy=".35" rx=".62" ry=".85" transform="rotate(-12)"/><circle cx="-.52" cy="-.72" r=".24"/><circle cx="-.05" cy="-.92" r=".19"/><circle cx=".38" cy="-.88" r=".165"/><circle cx=".68" cy="-.68" r=".14"/><circle cx=".88" cy="-.40" r=".12"/></g></svg>'>
 <style>
@@ -102,8 +102,30 @@
   #loading .spin{width:46px;height:46px;border-radius:50%;border:4px solid rgba(255,255,255,.15);
     border-top-color:var(--accent2);animation:spin 1s linear infinite;margin-bottom:18px}
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---------- controles touch (só em celular/tablet) ---------- */
+  html,body{overscroll-behavior:none}
+  #touch{display:none}
+  body.touch #touch{display:block}
+  body.touch #hints{display:none}
+  body.touch #mapBox{bottom:150px;transform:scale(.82);transform-origin:bottom right}
+  body.touch #speedBox{bottom:150px;transform:scale(.82);transform-origin:bottom left}
+  .tbtn{position:fixed;z-index:15;width:86px;height:86px;border-radius:50%;
+    background:rgba(255,255,255,.10);border:2px solid rgba(255,255,255,.30);
+    color:#fff;font-size:34px;font-weight:800;display:flex;align-items:center;justify-content:center;
+    touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;
+    backdrop-filter:blur(3px)}
+  .tbtn.on{background:rgba(255,197,49,.35);border-color:var(--accent2)}
+  .tbtn.small{width:52px;height:52px;font-size:20px}
+  #tLeft{left:calc(14px + env(safe-area-inset-left));bottom:28px}
+  #tRight{left:calc(116px + env(safe-area-inset-left));bottom:28px}
+  #tGas{right:calc(14px + env(safe-area-inset-right));bottom:118px;background:rgba(57,211,83,.16);border-color:rgba(57,211,83,.5)}
+  #tBrake{right:calc(14px + env(safe-area-inset-right));bottom:22px;background:rgba(255,77,61,.16);border-color:rgba(255,77,61,.5)}
+  #tHb{right:calc(112px + env(safe-area-inset-right));bottom:60px}
+  #tCam{right:calc(16px + env(safe-area-inset-right));top:110px}
+  #tMus{right:calc(16px + env(safe-area-inset-right));top:172px}
 </style>
-  <script type="module" crossorigin src="./assets/index-BW_1HxLc.js"></script>
+  <script type="module" crossorigin src="./assets/index-b3MHYL_m.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -168,6 +190,16 @@
   </div>
   <div class="pressStart">PRESS <span>ENTER</span> TO START</div>
   <div class="credit">Made by <a href="https://www.gebaralabs.dev/" target="_blank" rel="noopener" style="color:#9fb3c8">GEBARA Labs</a> · Vite · TypeScript · three.js WebGPU/TSL · cannon-es — fully static</div>
+</div>
+
+<div id="touch">
+  <div id="tLeft" class="tbtn">◀</div>
+  <div id="tRight" class="tbtn">▶</div>
+  <div id="tGas" class="tbtn">▲</div>
+  <div id="tBrake" class="tbtn">▼</div>
+  <div id="tHb" class="tbtn">✋</div>
+  <div id="tCam" class="tbtn small">📷</div>
+  <div id="tMus" class="tbtn small">🎵</div>
 </div>
 
 <div id="countdown" class="overlay hidden"><div id="cdNum">3</div></div>

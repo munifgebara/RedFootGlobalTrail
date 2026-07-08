@@ -12,6 +12,7 @@ import { Hud, fmtTime } from './hud';
 import { audio, speak } from './audio';
 import { music } from './music';
 import { loadAssets } from './assets';
+import { setupTouch } from './touch';
 
 type GameState = 'MENU' | 'COUNTDOWN' | 'RACING' | 'FINISHED';
 
@@ -123,6 +124,23 @@ async function main(): Promise<void> {
       case 'Space': keys.hb = false; break;
     }
   });
+
+  // celular/tablet: controles na tela + toque para largar
+  const touchActive = setupTouch(keys, () => { audio.start(); music.ensureStarted(); }, {
+    camera: () => { G.camMode = (G.camMode + 1) % 3; },
+    music: () => { music.toggle(); },
+  });
+  if (touchActive) {
+    for (const el of document.querySelectorAll('.pressStart')) {
+      el.innerHTML = 'TAP TO <span>START</span>';
+    }
+    $('menu').addEventListener('pointerdown', () => {
+      if (G.state === 'MENU') { audio.start(); music.ensureStarted(); startRace(); }
+    });
+    $('results').addEventListener('pointerdown', () => {
+      if (G.state === 'FINISHED') { hide('results'); startRace(); }
+    });
+  }
 
   function startRace(): void {
     hide('menu');
