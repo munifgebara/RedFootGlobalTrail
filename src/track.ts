@@ -57,10 +57,12 @@ export function buildTrack(): Track {
     if (!grid.has(k)) grid.set(k, []);
     grid.get(k)!.push(i);
   }
+  // varre 5x5 células (alcance garantido = 2*CELL = 84 m) — precisa cobrir
+  // o raio de fade do grader, senão o corredor "perde" a pista e vira penhasco
   const roadNearest = (x: number, z: number): { d: number; i: number } => {
     let best = 1e18, bi = -1;
     const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
-    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
       const arr = grid.get((cx + dx) + '_' + (cz + dz));
       if (!arr) continue;
       for (const i of arr) {
@@ -76,6 +78,7 @@ export function buildTrack(): Track {
   /* ---------- perfil da estrada: suave e com rampa limitada ---------- */
   const prof = new Float32Array(NSEG + 1);
   for (let i = 0; i <= NSEG; i++) prof[i] = terrainH(pts[i].x, pts[i].z);
+  const rawProf = prof.slice();
   for (let pass = 0; pass < 2; pass++) {
     const src = prof.slice();
     for (let i = 0; i <= NSEG; i++) {
@@ -94,16 +97,46 @@ export function buildTrack(): Track {
       prof[i] = Math.max(prof[i + 1] - maxDy, Math.min(prof[i + 1] + maxDy, prof[i]));
     }
   }
+  // pontas da rota: o perfil funde de volta ao terreno cru nos primeiros/
+  // últimos 80 m, senão o "shelf" da estrada termina num penhasco
+  const TAPER = Math.round(80 / DS);
+  for (let i = 0; i <= NSEG; i++) {
+    const eDist = Math.min(i, NSEG - i);
+    if (eDist < TAPER) {
+      const tw = eDist / TAPER;
+      const ts = tw * tw * (3 - 2 * tw);
+      prof[i] = rawProf[i] * (1 - ts) + prof[i] * ts;
+    }
+  }
   for (let i = 0; i <= NSEG; i++) pts[i].y = prof[i];
 
-  // corte/aterro contínuo: pista plana no perfil, encostas fundem a ~90 m
-  // (fade largo — a malha do terreno tem ~13 m entre vértices)
+  // corte/aterro contínuo. Importante: NÃO usar só a amostra mais próxima —
+  // quando a rota passa perto de si mesma (ruas!), o "mais próximo" flipa de
+  // um braço p/ outro e o perfil salta (o paredão da largada). Média
+  // ponderada por distância de TODAS as amostras no raio é contínua por
+  // construção.
+  const kernel = (d: number): number => {
+    if (d >= 80) return 0;
+    const w = d < 9 ? 1 : 1 - (d - 9) / 71;
+    return w * w * (3 - 2 * w); // smoothstep
+  };
   setRoadGrader((x, z, h) => {
-    const n = roadNearest(x, z);
-    if (n.i < 0 || n.d > 90) return h;
-    const w = n.d < 9 ? 1 : 1 - (n.d - 9) / 81;
-    const ws = w * w * (3 - 2 * w); // smoothstep
-    return h * (1 - ws) + prof[n.i] * ws;
+    const cx = Math.floor(x / CELL), cz = Math.floor(z / CELL);
+    let wSum = 0, hSum = 0, wMax = 0;
+    for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+      const arr = grid.get((cx + dx) + '_' + (cz + dz));
+      if (!arr) continue;
+      for (const i of arr) {
+        const ddx = pts[i].x - x, ddz = pts[i].z - z;
+        const w = kernel(Math.sqrt(ddx * ddx + ddz * ddz));
+        if (w <= 0) continue;
+        wSum += w;
+        hSum += w * prof[i];
+        if (w > wMax) wMax = w;
+      }
+    }
+    if (wSum <= 0) return h;
+    return h * (1 - wMax) + (hSum / wSum) * wMax;
   });
 
   /* ---------- pacenotes ---------- */
