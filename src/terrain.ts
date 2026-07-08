@@ -1,9 +1,10 @@
 import * as THREE from 'three/webgpu';
 import {
   attribute, positionWorld, positionView, mx_noise_float,
-  float, sin, smoothstep, vec3,
+  float, sin, smoothstep, vec3, texture, normalMap,
 } from 'three/tsl';
 import { cloudShadowNode } from './sky';
+import type { GameAssets } from './assets';
 
 import eco from './data/ecogarden.json';
 
@@ -57,8 +58,9 @@ export function fieldNoise(x: number, z: number): number {
  * corredor desgastado junto à estrada) + detalhe procedural por fragmento
  * via TSL: ruído em duas escalas e linhas de plantio que somem à distância.
  */
-export function buildTerrain(roadDist: (x: number, z: number) => number): THREE.Mesh {
-  const SZ = 6200, SEG = 300;
+export function buildTerrain(roadDist: (x: number, z: number) => number,
+                             assets: GameAssets): THREE.Mesh {
+  const SZ = 6200, SEG = 460;
   const geo = new THREE.PlaneGeometry(SZ, SZ, SEG, SEG);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position as THREE.BufferAttribute;
@@ -88,17 +90,24 @@ export function buildTerrain(roadDist: (x: number, z: number) => number): THREE.
   geo.setAttribute('aField', new THREE.BufferAttribute(fieldFlag, 1));
   geo.computeVertexNormals();
 
-  const mat = new THREE.MeshStandardNodeMaterial({ roughness: 1, metalness: 0 });
+  const mat = new THREE.MeshStandardNodeMaterial({ metalness: 0 });
   const vcol = attribute('color', 'vec3');
   const fField = attribute('aField', 'float');
+  const gUV = positionWorld.xz.mul(0.12);                          // ~8 m por tile
+  const gDiff = texture(assets.ground.map, gUV);
+  const gArm = texture(assets.ground.arm, gUV);
   const nBig = mx_noise_float(positionWorld.mul(0.045));           // manchas ~20 m
-  const nSmall = mx_noise_float(positionWorld.mul(0.6));           // grão fino
   const viewDist = positionView.z.negate();
   const rowFade = smoothstep(float(520), float(60), viewDist);
   const rows = sin(positionWorld.x.mul(1.15)).mul(fField).mul(rowFade).mul(0.09);
-  const detail = float(1.0).add(nBig.mul(0.11)).add(nSmall.mul(0.07)).add(rows);
+  const detail = float(1.0).add(nBig.mul(0.11)).add(rows);
   const cloud = float(1.0).sub(cloudShadowNode().mul(0.22));
-  mat.colorNode = vcol.mul(detail).mul(cloud).max(0.0);
+  mat.colorNode = vcol
+    .mul(gDiff.rgb.mul(2.6))                                       // PBR sparse_grass (CC0)
+    .mul(gArm.r.mul(0.3).add(0.7))
+    .mul(detail).mul(cloud).max(0.0);
+  mat.normalNode = normalMap(texture(assets.ground.nor, gUV));
+  mat.roughnessNode = gArm.g;
 
   const mesh = new THREE.Mesh(geo, mat);
   mesh.receiveShadow = true;

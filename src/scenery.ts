@@ -8,6 +8,7 @@ import type { Track } from './track';
 import { ROAD_HALF } from './track';
 import { DistanceLod } from './lod';
 import { buildLogoMonument, drawFoot } from './logo';
+import type { GameAssets } from './assets';
 
 // gerador determinístico
 let seed = 20260707;
@@ -71,13 +72,13 @@ export interface SceneryController {
   update(camPos: THREE.Vector3, dt: number): void;
 }
 
-export function buildScenery(scene: THREE.Scene, t: Track): SceneryController {
+export function buildScenery(scene: THREE.Scene, t: Track, assets: GameAssets): SceneryController {
   const lods: DistanceLod[] = [];
   const DEBUG_DISABLE = new URLSearchParams(location.search).get('off') ?? '';
   if (!DEBUG_DISABLE.includes('trees')) lods.push(trees(scene, t));
   if (!DEBUG_DISABLE.includes('coffee')) lods.push(coffee(scene, t));
   if (!DEBUG_DISABLE.includes('grass')) lods.push(grassTufts(scene, t));
-  if (!DEBUG_DISABLE.includes('rocks')) rocks(scene, t);
+  if (!DEBUG_DISABLE.includes('rocks')) rocks(scene, t, assets);
   fences(scene, t);
   poles(scene, t);
   chevrons(scene, t);
@@ -278,20 +279,21 @@ function grassTufts(scene: THREE.Scene, t: Track): DistanceLod {
   return lod;
 }
 
-/* ================= pedras na beira da estrada ================= */
-function rocks(scene: THREE.Scene, t: Track): void {
+/* ============ pedras: boulder fotoescaneado (Poly Haven, CC0) ============ */
+function rocks(scene: THREE.Scene, t: Track, assets: GameAssets): void {
   const N = 300;
-  const g = new THREE.DodecahedronGeometry(0.5, 0);
-  const pos = g.attributes.position as THREE.BufferAttribute;
-  const v = new THREE.Vector3();
-  for (let i = 0; i < pos.count; i++) {
-    v.fromBufferAttribute(pos, i);
-    v.multiplyScalar(0.8 + Math.abs(Math.sin(v.x * 12.3) * Math.cos(v.z * 9.1)) * 0.45);
-    pos.setXYZ(i, v.x, v.y, v.z);
+  let geo: THREE.BufferGeometry, mat: THREE.Material, baseScale = 1;
+  if (assets.boulder) {
+    geo = assets.boulder.geometry;
+    mat = assets.boulder.material;
+    geo.computeBoundingSphere();
+    baseScale = 0.9 / (geo.boundingSphere?.radius ?? 1);   // normaliza p/ ~0.9 m
+  } else {
+    // fallback procedural
+    geo = new THREE.DodecahedronGeometry(0.5, 0);
+    mat = new THREE.MeshStandardMaterial({ color: 0x8a7a68, roughness: 0.95, flatShading: true });
   }
-  g.computeVertexNormals();
-  const mesh = new THREE.InstancedMesh(g,
-    new THREE.MeshStandardMaterial({ roughness: 0.95, flatShading: true }), N);
+  const mesh = new THREE.InstancedMesh(geo, mat, N);
   mesh.castShadow = true;
   mesh.frustumCulled = false;
   const M = new THREE.Matrix4(), Q = new THREE.Quaternion(),
@@ -304,11 +306,10 @@ function rocks(scene: THREE.Scene, t: Track): void {
     const x = t.pts[i].x + t.norm[i].x * off * side + srange(-4, 4);
     const z = t.pts[i].z + t.norm[i].z * off * side + srange(-4, 4);
     if (t.roadDist(x, z) < ROAD_HALF + 1.2) continue;
-    const s = srange(0.14, 0.75);
-    Q.setFromEuler(new THREE.Euler(srand() * 3, srand() * 3, srand() * 3));
-    M.compose(P.set(x, terrainH(x, z) + s * 0.25, z), Q, S.set(s, s * srange(0.6, 1), s));
+    const s = srange(0.25, 1.4) * baseScale;
+    Q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), srand() * Math.PI * 2);
+    M.compose(P.set(x, terrainH(x, z) + s * 0.15, z), Q, S.set(s, s * srange(0.7, 1), s));
     mesh.setMatrixAt(placed, M);
-    mesh.setColorAt(placed, new THREE.Color().setHSL(0.07, srange(0.05, 0.22), srange(0.32, 0.55)));
     placed++;
   }
   mesh.count = placed;

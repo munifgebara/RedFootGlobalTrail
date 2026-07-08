@@ -1,7 +1,9 @@
 import * as THREE from 'three/webgpu';
 import {
-  uv, positionWorld, mx_noise_float, color, float, vec3, smoothstep, mix, attribute,
+  uv, positionWorld, mx_noise_float, color, float, vec2, vec3, smoothstep, mix, attribute,
+  texture, normalMap,
 } from 'three/tsl';
+import type { GameAssets } from './assets';
 import { terrainH, setRoadGrader } from './terrain';
 import { cloudShadowNode } from './sky';
 
@@ -94,12 +96,14 @@ export function buildTrack(): Track {
   }
   for (let i = 0; i <= NSEG; i++) pts[i].y = prof[i];
 
-  // corte/aterro contínuo: pista plana no perfil, encostas fundem a ~45 m
+  // corte/aterro contínuo: pista plana no perfil, encostas fundem a ~90 m
+  // (fade largo — a malha do terreno tem ~13 m entre vértices)
   setRoadGrader((x, z, h) => {
     const n = roadNearest(x, z);
-    if (n.i < 0 || n.d > 45) return h;
-    const w = n.d < 9 ? 1 : 1 - (n.d - 9) / 36;
-    return h * (1 - w) + prof[n.i] * w;
+    if (n.i < 0 || n.d > 90) return h;
+    const w = n.d < 9 ? 1 : 1 - (n.d - 9) / 81;
+    const ws = w * w * (3 - 2 * w); // smoothstep
+    return h * (1 - ws) + prof[n.i] * ws;
   });
 
   /* ---------- pacenotes ---------- */
@@ -180,26 +184,27 @@ function ribbonGeometry(t: Track, halfIn: number, halfOut: number,
   return g;
 }
 
-/** Estrada de terra roxa — cor 100% procedural em TSL (trilhos de pneu,
- *  bordas escurecidas, grão e variação ao longo do percurso). */
-export function buildRoad(t: Track): THREE.Group {
+/** Estrada de terra roxa — PBR real (Poly Haven red_dirt_mud_01, CC0) +
+ *  trilhos de pneu, bordas e sombras de nuvens procedurais em TSL. */
+export function buildRoad(t: Track, assets: GameAssets): THREE.Group {
   const grp = new THREE.Group();
 
-  const mat = new THREE.MeshStandardNodeMaterial({ roughness: 1, metalness: 0 });
+  const mat = new THREE.MeshStandardNodeMaterial({ metalness: 0 });
   const u = uv().x, v = uv().y;
   const rutL = smoothstep(0.17, 0.03, u.sub(0.30).abs());
   const rutR = smoothstep(0.17, 0.03, u.sub(0.70).abs());
   const ruts = rutL.add(rutR).clamp(0, 1);
   const edge = smoothstep(0.0, 0.10, u).mul(smoothstep(1.0, 0.90, u));
-  const nAlong = mx_noise_float(vec3(u.mul(14), v.mul(3.5), 1.7));
-  const nFine = mx_noise_float(positionWorld.mul(1.6));
-  const base = mix(color(0x7a4a33), color(0x54301f), ruts.mul(0.55));
-  mat.colorNode = base
-    .mul(float(0.9).add(nAlong.mul(0.10)).add(nFine.mul(0.08)))
-    .mul(float(0.78).add(edge.mul(0.22)))
+  const roadUV = vec2(u, v);                       // 1 tile na largura, 1 a cada 8 m
+  const diff = texture(assets.road.map, roadUV);
+  const arm = texture(assets.road.arm, roadUV);
+  mat.colorNode = diff.rgb
+    .mul(arm.r.mul(0.6).add(0.4))                  // oclusão assada
+    .mul(float(1.0).sub(ruts.mul(0.30)))           // trilhos de pneu escurecidos
+    .mul(float(0.80).add(edge.mul(0.20)))
     .mul(float(1.0).sub(cloudShadowNode().mul(0.18)));
-  // trilhos de pneu levemente mais "polidos" (brilho de terra compactada)
-  mat.roughnessNode = float(1.0).sub(ruts.mul(0.25));
+  mat.normalNode = normalMap(texture(assets.road.nor, roadUV));
+  mat.roughnessNode = arm.g.sub(ruts.mul(0.2)).clamp(0.3, 1);
 
   const road = new THREE.Mesh(ribbonGeometry(t, -ROAD_HALF, ROAD_HALF), mat);
   road.receiveShadow = true;
@@ -208,10 +213,11 @@ export function buildRoad(t: Track): THREE.Group {
   // acostamentos: terra → grama
   const cDirt = new THREE.Color(0x6e4530), cGrass = new THREE.Color(0x86ad52);
   const shoulderMat = new THREE.MeshStandardNodeMaterial({ roughness: 1 });
-  const nSh = mx_noise_float(positionWorld.mul(0.9));
+  const shUV = positionWorld.xz.mul(0.12);
   shoulderMat.colorNode = attribute('color', 'vec3')
-    .mul(float(0.95).add(nSh.mul(0.1)))
+    .mul(texture(assets.ground.map, shUV).rgb.mul(1.8))
     .mul(float(1.0).sub(cloudShadowNode().mul(0.20)));
+  shoulderMat.normalNode = normalMap(texture(assets.ground.nor, shUV));
   for (const [a, b] of [[ROAD_HALF - 0.1, ROAD_HALF + 3.4], [-(ROAD_HALF - 0.1), -(ROAD_HALF + 3.4)]]) {
     const m = new THREE.Mesh(ribbonGeometry(t, a, b, cDirt, cGrass), shoulderMat);
     m.receiveShadow = true;

@@ -11,6 +11,7 @@ import { Dust } from './dust';
 import { Hud, fmtTime } from './hud';
 import { audio, speak } from './audio';
 import { music } from './music';
+import { loadAssets } from './assets';
 
 type GameState = 'MENU' | 'COUNTDOWN' | 'RACING' | 'FINISHED';
 
@@ -49,13 +50,14 @@ async function main(): Promise<void> {
   const camera = new THREE.PerspectiveCamera(66, innerWidth / innerHeight, 0.3, 5000);
 
   /* ---------- mundo ---------- */
+  const assets = await loadAssets();
   const track = buildTrack();
   const sky = buildSky();
   scene.add(sky);
   const sun = buildLights(scene);
-  scene.add(buildTerrain(track.roadDist));
-  scene.add(buildRoad(track));
-  const scenery = buildScenery(scene, track);
+  scene.add(buildTerrain(track.roadDist, assets));
+  scene.add(buildRoad(track, assets));
+  const scenery = buildScenery(scene, track, assets);
 
   const carVis = buildCarVisual();
   scene.add(carVis.group);

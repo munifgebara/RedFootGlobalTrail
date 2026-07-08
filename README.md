@@ -89,6 +89,13 @@ No workflow or server needed — static pages only.
   Iguaçu Falls, Grand Canyon, Machu Picchu…), customizable avatars,
   new tracks added via GitHub issues.
 
+## Asset credits
+
+PBR textures and the scanned boulder come from **[Poly Haven](https://polyhaven.com)** (CC0):
+`red_dirt_mud_01` (road), `sparse_grass` (fields), `boulder_01` (roadside rocks).
+Fetched by `node tools/fetch-assets.mjs` into `public/assets/` (committed, so the
+site stays static). Everything else is generated procedurally at runtime.
+
 ---
 
 Built with Claude Code as an AI-model evaluation POC, for GEBARA Labs.
