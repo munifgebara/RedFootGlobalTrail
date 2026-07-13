@@ -1,5 +1,9 @@
 # 👣 Red Foot Global Trail
 
+## ▶️ [**PLAY NOW — munifgebara.github.io/RedFootGlobalTrail**](https://munifgebara.github.io/RedFootGlobalTrail/)
+
+*Runs straight from GitHub Pages — desktop (keyboard) and mobile (touch). No install, no server.*
+
 A [GEBARA Labs](https://www.gebaralabs.dev/) experiment.
 
 **Stage 1: Ecogarden** — a 3D rally simulator that runs 100% in the browser,
@@ -26,7 +30,6 @@ profile is smoothed and capped at 12% grade, and the terrain is cut/filled
 in a corridor around it, so physics, road ribbon and scenery stay perfectly
 in sync.
 
-**Play it:** open the repository's GitHub Pages (or run it locally, below).
 
 ## Stack
 
